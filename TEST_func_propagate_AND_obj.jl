@@ -25,9 +25,10 @@ using Astrofunctions
 ############################################# NOTE TO MOVE TO main function #############################################################################
 using NearestNeighbors
 using NetCDF
-Rearth_km = 6378.137;    # [km]
-Alt_kd_km = 0;
-foldername = string(dir_main,"\\_spatial_grids\\");
+
+Rearth_km 	 = 6378.137;    # [km]
+Alt_kd_km 	 = 0;
+foldername 	 = string(dir_main,"\\_spatial_grids\\");
 filename_JPL = "JPL_MSCNv01_PLACEMENT.nc"; # source: https://podaac.jpl.nasa.gov/dataset/TELLUS_MASCON_GRID_POINT_PLACEMENT_V1
 # ncinfo(string(foldername, filename_JPL))
 JPL_mascon_radius_km      =    ncread(string(foldername, filename_JPL), "mascon_rad");          # Float64: radius  1xN [km]
@@ -71,15 +72,15 @@ nsat = Int(size(population_kep)[2]/6)
 R_tot = [NaN*ones(nsat,3) for _ in 1:npop]
 V_tot = [NaN*ones(nsat,3) for _ in 1:npop]
 for ipop=1:npop
-    for isat = 1:nsat
-        ind_i = nvar*(isat+1)-nvar-nvar+1
-        a = population_kep[ipop,ind_i];      e = population_kep[ipop,ind_i+1];
-        i = population_kep[ipop,ind_i+2];    W = population_kep[ipop,ind_i+3];
-        w = population_kep[ipop,ind_i+4];    M = population_kep[ipop,ind_i+5];
-        R, V = func_kep2eci(mu_km3s2,a,e,i,W,w,M)
-        R_tot[ipop][isat,1:3] = R
-        V_tot[ipop][isat,1:3] = V
-    end
+for isat = 1:nsat
+	ind_i = nvar*(isat+1)-nvar-nvar+1
+	a = population_kep[ipop,ind_i];      e = population_kep[ipop,ind_i+1];
+	i = population_kep[ipop,ind_i+2];    W = population_kep[ipop,ind_i+3];
+	w = population_kep[ipop,ind_i+4];    M = population_kep[ipop,ind_i+5];
+	R, V = func_kep2eci(mu_km3s2,a,e,i,W,w,M)
+	R_tot[ipop][isat,1:3] = R
+	V_tot[ipop][isat,1:3] = V
+end
 end
 # 0.000170 seconds (2.05 k allocations: 108.156 KiB)
 
@@ -125,7 +126,11 @@ flag_plot_Robinson = false
 # Get a list of cities with [Latitude, Longitude] information && get a ship route (easy [PortA<->B], medium [portA<->B<->C], hard [A..G])
 # convert cities[Latitude,Longitude] -> ECEF
 # convert ship routes[Lat,Lon] -> ECEF
-cities_TEST_latlon_deg = [55.7558 37.6173; 39.9042 116.4074; 40.3399 127.5101; 35.7219 51.3347] #### Moskow,Beijing,Pyongyang,Teheran ################################################################################# NOTE to be changed #########################################################################
+cities_TEST_latlon_deg = [55.7558 37.6173;
+						39.9042 116.4074;
+						40.3399 127.5101;
+						35.7219 51.3347] 
+						#### Moskow,Beijing,Pyongyang,Teheran ################################################################################# NOTE to be changed #########################################################################
 ntarget = size(cities_TEST_latlon_deg)[1]
 
 flag_plot_Robinson_p_cities = false
@@ -141,31 +146,31 @@ end
 
 
 ## which location on Earth is the satellite(t=ti) the closest? && which ones are closest to it?
-grid_idx_visited = zeros(npop,nsat,time_steps); grid_dis_visited = zeros(npop,nsat,time_steps);
-grid_idx_visited10 = zeros(npop,nsat,time_steps,10); grid_dis_visited10 = zeros(npop,nsat,time_steps,10);
-grid_idx_target  = zeros(ntarget);
-grid_dis_target  = zeros(ntarget);
+grid_idx_visited 	= zeros(npop,nsat,time_steps); grid_dis_visited = zeros(npop,nsat,time_steps);
+grid_idx_visited10 	= zeros(npop,nsat,time_steps,10); grid_dis_visited10 = zeros(npop,nsat,time_steps,10);
+grid_idx_target  	= zeros(ntarget);
+grid_dis_target  	= zeros(ntarget);
 
 # @sync @distributed for i=1:time_steps_Nsat_tot
 
 co_obs = 1 # closest_outputs @ observation
 for iobs=1:time_steps
-	for isat=1:nsat
-		for ipop=1:npop
-		   grid_idx_visited[ipop,isat,iobs] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[1][1]
-		   grid_dis_visited[ipop,isat,iobs] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[2][1]
-		end
-	end
+for isat=1:nsat
+for ipop=1:npop
+	grid_idx_visited[ipop,isat,iobs] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[1][1]
+	grid_dis_visited[ipop,isat,iobs] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[2][1]
+end
+end
 end
 
-co_obs = 10 # closest_outputs @ observation
+co_obs = 1 # closest_outputs @ observation
 for iobs=1:time_steps
-	for isat=1:nsat
-		for ipop=1:npop
-		   grid_idx_visited10[ipop,isat,iobs,:] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[1]
-		   grid_dis_visited10[ipop,isat,iobs,:] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[2]
-		end
-	end
+for isat=1:nsat
+for ipop=1:npop
+	grid_idx_visited10[ipop,isat,iobs,:] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[1]
+	grid_dis_visited10[ipop,isat,iobs,:] = NearestNeighbors.knn(kdtree, ECEF_tot[ipop][isat,iobs,1:3],co_obs)[2]
+end
+end
 end
 
 co_tar = 1 # closest_outputs @ target
@@ -179,14 +184,14 @@ end
 grid_idx_visited_target = NaN*zeros(npop,nsat,time_steps)
 
 for iobs=1:time_steps
-	for isat=1:nsat
-		for ipop=1:npop
-			if sum(grid_idx_visited[ipop,isat,iobs] .== grid_idx_target)>=1 #observation has YES been performed at target
-				grid_idx_visited_target[ipop,isat,iobs] = grid_idx_visited[ipop,isat,iobs]
-			else #observation has NOT been performed at target -> do NOT apply changes
-			end
-		end
+for isat=1:nsat
+for ipop=1:npop
+	if sum(grid_idx_visited[ipop,isat,iobs] .== grid_idx_target)>=1 #observation has YES been performed at target
+		grid_idx_visited_target[ipop,isat,iobs] = grid_idx_visited[ipop,isat,iobs]
+	else #observation has NOT been performed at target -> do NOT apply changes
 	end
+end
+end
 end
 
 
@@ -198,14 +203,14 @@ end
 grid_idx_visited_lat_lon = NaN*zeros(npop,nsat,time_steps,2)
 grid_idx_visited_target_lat_lon = NaN*zeros(npop,nsat,time_steps,2)
 for iobs=1:time_steps
-	for isat=1:nsat
-		for ipop=1:npop
-			grid_idx_visited_lat_lon[ipop,isat,iobs,:] = [JPL_mascon_lat_center_deg[Int(grid_idx_visited[ipop,isat,iobs])] , JPL_mascon_lon_center_deg_180[Int(grid_idx_visited[ipop,isat,iobs])]]
-			if isnan(grid_idx_visited_target[ipop,isat,iobs]) == false
-				grid_idx_visited_target_lat_lon[ipop,isat,iobs,:] = [JPL_mascon_lat_center_deg[Int(grid_idx_visited_target[ipop,isat,iobs])] , JPL_mascon_lon_center_deg_180[Int(grid_idx_visited_target[ipop,isat,iobs])]]
-			end
-		end
+for isat=1:nsat
+for ipop=1:npop
+	grid_idx_visited_lat_lon[ipop,isat,iobs,:] = [JPL_mascon_lat_center_deg[Int(grid_idx_visited[ipop,isat,iobs])] , JPL_mascon_lon_center_deg_180[Int(grid_idx_visited[ipop,isat,iobs])]]
+	if isnan(grid_idx_visited_target[ipop,isat,iobs]) == false
+		grid_idx_visited_target_lat_lon[ipop,isat,iobs,:] = [JPL_mascon_lat_center_deg[Int(grid_idx_visited_target[ipop,isat,iobs])] , JPL_mascon_lon_center_deg_180[Int(grid_idx_visited_target[ipop,isat,iobs])]]
 	end
+end
+end
 end
 
 
